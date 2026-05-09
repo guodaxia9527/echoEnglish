@@ -1,0 +1,35 @@
+{
+  "name": "回声 · 发音循环练习",
+  "short_name": "回声",
+  "description": "帮助你反复听同一个英语单词的多种发音，让你的耳朵快速建立正确的语音记忆",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#58CC02",
+  "background_color": "#f7f7f7",
+  "lang": "zh-CN",
+  "categories": ["education", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "开始练习",
+      "short_name": "练习",
+      "description": "打开回声开始发音练习",
+      "url": "./?action=practice"
+    }
+  ]
+}
