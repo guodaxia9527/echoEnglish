@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="回声">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>回声 · 发音练习</title>
+<style>
+:root {
+  --green: #58CC02;
+  --green-dark: #46a302;
+  --green-light: #e7f9d0;
+  --green-mid: #d0f0a0;
+  --blue: #1cb0f6;
+  --blue-light: #dff4ff;
+  --yellow: #ffc800;
+  --red: #ff4b4b;
+  --bg: #f7f7f7;
+  --card: #ffffff;
+  --text: #3c3c3c;
+  --text2: #777;
+  --text3: #aaa;
+  --border: #e5e5e5;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+  --r: 16px;
+  --r-sm: 10px;
+  --r-full: 999px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.app {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ── header ── */
+.header {
+  background: var(--card);
+  border-bottom: 1.5px solid var(--border);
+  padding: 14px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.logo-wrap { display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--green);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(88,204,2,0.35);
+}
+.logo-text { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.logo-sub { font-size: 11px; color: var(--text3); font-weight: 400; letter-spacing: 0.3px; }
+.info-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text2);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.info-btn:hover { background: var(--bg); }
+
+/* ── intro modal ── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-bg.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--card);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 24px 24px 36px;
+  width: 100%;
+  max-width: 480px;
+  transform: translateY(40px);
+  transition: transform 0.25s cubic-bezier(.25,.8,.25,1);
+}
+.modal-bg.show .modal { transform: translateY(0); }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+.modal p { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 10px; }
+.modal-tip {
+  background: var(--green-light);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--green-dark);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+.modal-close {
+  margin-top: 20px;
+  width: 100%;
+  padding: 14px;
+  background: var(--green);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--green-dark);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.modal-close:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--green-dark); }
+
+/* ── scroll content ── */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── word card ── */
+.word-card {
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 18px 20px 16px;
+  box-shadow: var(--shadow);
+}
+.word-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  letter-spacing: -0.5px;
+  caret-color: var(--green);
+}
+.word-input::placeholder { color: var(--text3); font-weight: 400; }
+.divider { height: 2px; background: var(--border); border-radius: 1px; margin: 10px 0; transition: background 0.15s; }
+.word-input:focus ~ .divider { background: var(--green); }
+.phonetic-row { display: flex; gap: 16px; flex-wrap: wrap; min-height: 22px; align-items: center; }
+.ph-item { display: flex; align-items: center; gap: 5px; }
+.ph-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  padding: 2px 6px; border-radius: var(--r-full);
+  background: var(--blue-light); color: var(--blue);
+}
+.ph-badge.uk { background: #fff3e0; color: #e67e00; }
+.ph-text { font-size: 14px; color: var(--text2); letter-spacing: 0.03em; }
+.ph-skeleton {
+  height: 14px; width: 90px; background: linear-gradient(90deg,#eee 25%,#f5f5f5 50%,#eee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── accent tabs ── */
+.accent-tabs {
+  display: flex;
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 4px;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+.accent-tab {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text3);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.accent-tab.on { background: var(--green); color: white; box-shadow: 0 2px 6px rgba(88,204,2,0.3); }
+
+/* ── voices ── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  padding: 0 4px;
+}
+.voices-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vc {
+  background: var(--card);
+  border-radius: var(--r-sm);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.vc.sel { border-color: var(--green); }
+.vc.now { border-color: var(--green); box-shadow: 0 0 0 3px rgba(88,204,2,0.18); }
+.vc-check {
+  width: 48px;
+  min-width: 48px;
+  height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  border-right: 1.5px solid var(--border);
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+.vc-check:hover { background: var(--green-light); }
+.vc-check:active { background: var(--green-mid); }
+.checkmark {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.vc.sel .checkmark, .vc.now .checkmark {
+  background: var(--green);
+  border-color: var(--green);
+}
+.checkmark svg { display: none; }
+.vc.sel .checkmark svg, .vc.now .checkmark svg { display: block; }
+
+.vc-body {
+  flex: 1;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  transition: background 0.12s;
+  min-width: 0;
+}
+.vc-body:hover { background: var(--bg); }
+.vc-body:active { background: #edfcd4; }
+.vc-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.vc-info { flex: 1; min-width: 0; }
+.vc-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vc-lang { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.vc-play-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--green-light);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, transform 0.1s;
+}
+.vc-body:active .vc-play-icon { background: var(--green-mid); transform: scale(0.92); }
+.vc.now .vc-play-icon { background: var(--green); }
+.vc.now .vc-play-icon svg { fill: white; }
+.vc-play-icon svg { fill: var(--green); transition: fill 0.12s; }
+
+.vc-speaking {
+  display: flex; gap: 2px; align-items: flex-end; height: 16px;
+  padding: 0 2px;
+}
+.bar {
+  width: 3px; border-radius: 2px;
+  background: var(--green);
+  animation: bounce 0.6s ease-in-out infinite alternate;
+}
+.bar:nth-child(1){height:6px;animation-delay:0s}
+.bar:nth-child(2){height:12px;animation-delay:0.15s}
+.bar:nth-child(3){height:8px;animation-delay:0.3s}
+.bar:nth-child(4){height:14px;animation-delay:0.1s}
+@keyframes bounce{from{transform:scaleY(0.5)}to{transform:scaleY(1)}}
+
+.no-voices { font-size: 14px; color: var(--text3); padding: 16px; text-align: center; }
+
+/* ── bottom bar ── */
+.bottom-bar {
+  background: var(--card);
+  border-top: 1.5px solid var(--border);
+  padding: 14px 16px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+.sliders { display: flex; gap: 16px; }
+.slider-block { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.slider-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.05em;
+}
+.slider-label span:last-child { color: var(--green-dark); font-weight: 700; }
+input[type=range] {
+  width: 100%; -webkit-appearance: none; appearance: none;
+  height: 4px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 1px 4px rgba(88,204,2,0.4);
+  cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--green); border: none;
+  box-shadow: 0 1px 4px rgba(88,204,2,0.4);
+}
+.bottom-actions { display: flex; gap: 8px; }
+.btn-loop {
+  flex: 2;
+  padding: 14px;
+  background: var(--green);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--green-dark);
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-loop:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--green-dark); }
+.btn-loop.stop { background: var(--red); box-shadow: 0 3px 0 #c03030; }
+.btn-loop.stop:active { box-shadow: 0 1px 0 #c03030; }
+.btn-selall {
+  flex: 0 0 auto;
+  padding: 14px 14px;
+  background: var(--card);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.btn-selall:hover { border-color: var(--green); color: var(--green-dark); }
+.btn-selall:active { background: var(--green-light); }
+.btn-once {
+  flex: 1;
+  padding: 14px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn-once:hover { border-color: var(--green); color: var(--green-dark); }
+.btn-once:active { background: var(--green-light); }
+
+.status-line {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text3);
+  min-height: 16px;
+}
+.status-line em { color: var(--green-dark); font-style: normal; font-weight: 600; }
+
+/* yg row */
+.yg-row {
+  display: flex; gap: 6px; align-items: center;
+}
+.yg-label { font-size: 11px; color: var(--text3); flex-shrink: 0; font-weight: 600; letter-spacing: 0.05em; }
+.yg-btn {
+  flex: 1;
+  padding: 9px 10px;
+  background: var(--blue-light);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: background 0.12s;
+  letter-spacing: 0.02em;
+}
+.yg-btn:hover { background: #b8e8fc; }
+.yg-btn:active { background: #8dd9f9; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- header -->
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo-icon">🔊</div>
+      <div>
+        <div class="logo-text">回声</div>
+        <div class="logo-sub">发音循环练习</div>
+      </div>
+    </div>
+    <button class="info-btn" onclick="showIntro()" aria-label="使用说明">?</button>
+  </div>
+
+  <!-- intro modal -->
+  <div class="modal-bg" id="modalBg" onclick="if(event.target===this)hideIntro()">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <h2>🔊 欢迎使用回声</h2>
+      <p>回声帮你反复听同一个英语单词的多种发音，让你的耳朵快速建立正确的语音记忆。</p>
+      <p><strong>怎么用：</strong></p>
+      <p>① 输入想练习的单词<br>② 选择美音 / 英音 / 混合<br>③ 勾选想听的声音，点击某个声音可单独试听<br>④ 按「循环」开始反复播放</p>
+      <div class="modal-tip">
+        💡 音标会自动从网络加载。语速建议 0.8–0.9×，间隔 1s，听感最舒适。<br><br>
+        点击「Youglish」可跳转到真人在 YouTube 视频中的发音片段，比 TTS 更自然。
+      </div>
+      <button class="modal-close" onclick="hideIntro()">明白了，开始练习 →</button>
+    </div>
+  </div>
+
+  <!-- scroll -->
+  <div class="scroll">
+
+    <!-- word card -->
+    <div class="word-card">
+      <input class="word-input" id="wordInput" type="text" value="loyal"
+        placeholder="输入单词…" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onWordChange()" onkeydown="if(event.key==='Enter'){this.blur();fetchPhonetic(currentWord,true);}">
+      <div class="divider" id="divider"></div>
+      <div class="phonetic-row" id="phoneticRow">
+        <div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>
+      </div>
+    </div>
+
+    <!-- accent tabs -->
+    <div class="accent-tabs">
+      <button class="accent-tab on" onclick="setAccent('us',this)">🇺🇸 美音 US</button>
+      <button class="accent-tab" onclick="setAccent('uk',this)">🇬🇧 英音 UK</button>
+      <button class="accent-tab" onclick="setAccent('both',this)">🌐 混合</button>
+    </div>
+
+    <!-- voices -->
+    <div class="section-label">声音来源</div>
+    <div class="voices-grid" id="voicesGrid">
+      <div class="no-voices">正在加载声音库…</div>
+    </div>
+
+    <!-- youglish -->
+    <div class="yg-row">
+      <span class="yg-label">真人视频</span>
+      <button class="yg-btn" onclick="openYG('american')">Youglish 美音 ↗</button>
+      <button class="yg-btn" onclick="openYG('british')">Youglish 英音 ↗</button>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- bottom bar -->
+  <div class="bottom-bar">
+    <div class="sliders">
+      <div class="slider-block">
+        <div class="slider-label"><span>语速</span><span id="sv">0.85×</span></div>
+        <input type="range" min="0.5" max="1.2" step="0.05" value="0.85"
+          oninput="speed=+this.value;document.getElementById('sv').textContent=speed.toFixed(2)+'×'">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><span>间隔</span><span id="gv">1.0s</span></div>
+        <input type="range" min="0.3" max="3" step="0.1" value="1"
+          oninput="gap=+this.value;document.getElementById('gv').textContent=gap.toFixed(1)+'s'">
+      </div>
+    </div>
+    <div class="status-line" id="statusLine">勾选声音，点击循环开始</div>
+    <div class="bottom-actions">
+      <button class="btn-selall" id="btnSelAll" onclick="toggleSelectAll()">全选</button>
+      <button class="btn-once" onclick="playOnce()">单次 ▷</button>
+      <button class="btn-loop" id="btnLoop" onclick="toggleLoop()">▶ 开始循环</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── state ──
+let allVoices=[], usVoices=[], ukVoices=[];
+let selected=[], accent='us';
+// playing: loop is running; busySingle: single/once is running
+let playing=false, busySingle=false, stopFlag=false;
+let speed=0.85, gap=1.0;
+let currentWord='loyal';
+let round=0;
+
+// avatar colors
+const COLORS=[
+  ['#dff4ff','#1cb0f6'],['#e7f9d0','#46a302'],['#fff0f0','#e05252'],
+  ['#fff8e0','#cc9a00'],['#f0e8ff','#7c4dff'],['#ffe8f5','#e040a0'],
+  ['#e8f5e9','#388e3c'],['#fff3e0','#e67e00'],
+];
+function avatarStyle(i){const c=COLORS[i%COLORS.length];return`background:${c[0]};color:${c[1]}`;}
+function initials(name){const parts=name.replace(/Microsoft |Google |Apple /,'').split(' ');return(parts[0]?.[0]||'')+(parts[1]?.[0]||'');}
+
+// ── intro ──
+function showIntro(){document.getElementById('modalBg').classList.add('show');}
+function hideIntro(){document.getElementById('modalBg').classList.remove('show');}
+if(!localStorage.getItem('echo_seen')){setTimeout(showIntro,400);localStorage.setItem('echo_seen','1');}
+
+// ── phonetic ──
+const phCache={};
+let phTimer=null;
+function onWordChange(){
+  currentWord=document.getElementById('wordInput').value.trim()||'loyal';
+  clearTimeout(phTimer);
+  phTimer=setTimeout(()=>fetchPhonetic(currentWord,false),600);
+}
+async function fetchPhonetic(word,play){
+  if(!word)return;
+  const row=document.getElementById('phoneticRow');
+  row.innerHTML='<div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>';
+  if(phCache[word]){renderPh(phCache[word]);if(play)playOnce();return;}
+  try{
+    const res=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word));
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    const entry=data[0];
+    let us='',uk='';
+    (entry.phonetics||[]).forEach(p=>{
+      if(!p.text)return;
+      const au=(p.audio||'').toLowerCase();
+      if(au.includes('-us')&&!us)us=p.text;
+      else if(au.includes('-uk')&&!uk)uk=p.text;
+    });
+    if(!us&&!uk&&entry.phonetics?.[0]?.text)us=entry.phonetics[0].text;
+    if(!us)us=entry.phonetic||'';
+    if(!uk)uk=us;
+    const result={us,uk};
+    phCache[word]=result;
+    renderPh(result);
+  }catch{
+    row.innerHTML='<span style="font-size:13px;color:var(--text3)">音标未找到</span>';
+  }
+  if(play)playOnce();
+}
+function renderPh(ph){
+  const row=document.getElementById('phoneticRow');
+  let html='';
+  if(ph.us)html+=`<div class="ph-item"><span class="ph-badge">US</span><span class="ph-text">${ph.us}</span></div>`;
+  if(ph.uk&&ph.uk!==ph.us)html+=`<div class="ph-item"><span class="ph-badge uk">UK</span><span class="ph-text">${ph.uk}</span></div>`;
+  if(!html)html='<span style="font-size:13px;color:var(--text3)">音标未找到</span>';
+  row.innerHTML=html;
+}
+fetchPhonetic('loyal',false);
+
+// ── voices ──
+function loadVoices(){
+  const v=window.speechSynthesis.getVoices();
+  if(!v.length)return false;
+  allVoices=v;
+  usVoices=v.filter(x=>x.lang==='en-US');
+  ukVoices=v.filter(x=>x.lang==='en-GB');
+  if(!usVoices.length)usVoices=v.filter(x=>x.lang.startsWith('en'));
+  if(!ukVoices.length)ukVoices=v.filter(x=>x.lang.startsWith('en'));
+  renderVoices();
+  return true;
+}
+
+// 移动端 onvoiceschanged 有时不触发，加轮询兜底
+window.speechSynthesis.onvoiceschanged=()=>loadVoices();
+if(!loadVoices()){
+  let attempts=0;
+  const poll=setInterval(()=>{
+    attempts++;
+    if(loadVoices()||attempts>=40){
+      clearInterval(poll);
+      // 轮询结束仍无声音，说明设备不支持或需要用户交互
+      if(!allVoices.length){
+        document.getElementById('voicesGrid').innerHTML=
+          '<div class="no-voices">未检测到语音引擎<br>请尝试点击页面后刷新，或检查系统语音设置</div>';
+      }
+    }
+  },250); // 每250ms重试，最多等10秒
+}
+
+function getPool(){
+  if(accent==='us')return usVoices;
+  if(accent==='uk')return ukVoices;
+  const seen=new Set();
+  return[...usVoices,...ukVoices].filter(v=>seen.has(v.name)?false:seen.add(v.name));
+}
+function setAccent(a,el){
+  if(playing)stopLoop();
+  accent=a;
+  document.querySelectorAll('.accent-tab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderVoices();
+}
+
+function renderVoices(){
+  const pool=getPool();
+  const grid=document.getElementById('voicesGrid');
+  if(!pool.length){grid.innerHTML='<div class="no-voices">未找到对应声音<br>请在系统设置中安装英语语音包</div>';return;}
+  selected=pool.slice(0,Math.min(6,pool.length)).map((_,i)=>i);
+  grid.innerHTML=pool.map((v,i)=>{
+    const raw=v.name.replace(/Microsoft |Google |Apple /,'').replace(/ \(.*?\)/,'').replace(/ Online.*$/,'');
+    const ini=initials(raw)||raw.slice(0,2).toUpperCase();
+    const isSel=selected.includes(i);
+    return`<div class="vc${isSel?' sel':''}" id="vc${i}">
+      <div class="vc-check" onclick="toggleVc(${i})" title="勾选加入循环">
+        <div class="checkmark">
+          <svg width="12" height="10" viewBox="0 0 12 10" fill="white"><path d="M1 5l3.5 3.5L11 1"/></svg>
+        </div>
+      </div>
+      <div class="vc-body" onclick="speakOne(${i})" title="点击试听">
+        <div class="vc-avatar" style="${avatarStyle(i)}">${ini}</div>
+        <div class="vc-info">
+          <div class="vc-name">${raw}</div>
+          <div class="vc-lang">${v.lang}</div>
+        </div>
+        <div class="vc-play-icon" id="pi${i}">
+          <svg width="12" height="14" viewBox="0 0 12 14"><path d="M1 1l10 6-10 6z"/></svg>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleVc(i){
+  const idx=selected.indexOf(i);
+  if(idx===-1)selected.push(i);else selected.splice(idx,1);
+  refreshCards();
+}
+function refreshCards(activeIdx=-1){
+  const pool=getPool();
+  pool.forEach((_,i)=>{
+    const el=document.getElementById('vc'+i);
+    if(!el)return;
+    const isSel=selected.includes(i);
+    const isNow=i===activeIdx;
+    el.className='vc'+(isNow?' sel now':isSel?' sel':'');
+    const pi=document.getElementById('pi'+i);
+    if(!pi)return;
+    if(isNow){
+      pi.innerHTML=`<div class="vc-speaking"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>`;
+    }else{
+      pi.innerHTML=`<svg width="12" height="14" viewBox="0 0 12 14"><path d="M1 1l10 6-10 6z" fill="${isSel?'var(--green)':'var(--text3)'}"/></svg>`;
+    }
+  });
+}
+
+// ── speak single ──
+async function speakOne(i){
+  if(playing||busySingle)return;
+  const pool=getPool();
+  const v=pool[i];
+  if(!v)return;
+  busySingle=true;
+  refreshCards(i);
+  setStatus('<em>'+shortName(v)+'</em> 试听中…');
+  await speak(v);
+  busySingle=false;
+  refreshCards();
+  setStatus('勾选声音，点击循环开始');
+}
+
+// ── select all / deselect all ──
+function toggleSelectAll(){
+  const pool=getPool();
+  if(!pool.length)return;
+  const allSel=pool.every((_,i)=>selected.includes(i));
+  if(allSel){
+    selected=[];
+    document.getElementById('btnSelAll').textContent='全选';
+  }else{
+    selected=pool.map((_,i)=>i);
+    document.getElementById('btnSelAll').textContent='全取消';
+  }
+  refreshCards();
+  updateSelAllBtn();
+}
+function updateSelAllBtn(){
+  const pool=getPool();
+  if(!pool.length)return;
+  const allSel=pool.length>0&&pool.every((_,i)=>selected.includes(i));
+  document.getElementById('btnSelAll').textContent=allSel?'全取消':'全选';
+}
+function toggleVc(i){
+  if(playing||busySingle)return;
+  const idx=selected.indexOf(i);
+  if(idx===-1)selected.push(i);else selected.splice(idx,1);
+  refreshCards();
+  updateSelAllBtn();
+}
+// ── loop ──
+function toggleLoop(){if(playing)stopLoop();else startLoop();}
+function stopLoop(){
+  stopFlag=true;playing=false;
+  window.speechSynthesis.cancel();
+  const btn=document.getElementById('btnLoop');
+  btn.className='btn-loop';btn.innerHTML='▶ 开始循环';
+  setStatus('已停止');refreshCards();
+}
+async function startLoop(){
+  if(playing||busySingle)return;
+  if(!selected.length){setStatus('请先勾选至少一个声音');return;}
+  playing=true;stopFlag=false;round=0;
+  const btn=document.getElementById('btnLoop');
+  btn.className='btn-loop stop';btn.innerHTML='■ 停止循环';
+  const pool=getPool();
+  while(!stopFlag){
+    const queue=[...selected];
+    if(!queue.length){
+      stopLoop();
+      setStatus('没有勾选的声音，已自动停止');
+      return;
+    }
+    for(let qi=0;qi<queue.length;qi++){
+      if(stopFlag)break;
+      const vi=queue[qi];
+      const v=pool[vi];
+      if(!v)continue;
+      refreshCards(vi);
+      setStatus('第'+(round+1)+'轮 · <em>'+shortName(v)+'</em>');
+      await speak(v);
+      if(stopFlag)break;
+      await sleep(gap*1000);
+    }
+    if(!stopFlag)round++;
+  }
+}
+async function playOnce(){
+  if(playing||busySingle)return;
+  if(!selected.length){setStatus('请先勾选至少一个声音');return;}
+  busySingle=true;
+  window.speechSynthesis.cancel();
+  stopFlag=false;
+  const pool=getPool();
+  const queue=[...selected];
+  for(let qi=0;qi<queue.length;qi++){
+    if(stopFlag)break;
+    const vi=queue[qi];
+    const v=pool[vi];
+    if(!v)continue;
+    refreshCards(vi);
+    setStatus('<em>'+shortName(v)+'</em> · 单次');
+    await speak(v);
+    if(stopFlag)break;
+    await sleep(gap*1000);
+  }
+  busySingle=false;
+  refreshCards();
+  setStatus('单次完成，点循环继续');
+}
+
+// ── speak ──
+function speak(voice){
+  return new Promise(resolve=>{
+    window.speechSynthesis.cancel();
+    const word=document.getElementById('wordInput').value.trim()||'loyal';
+    const u=new SpeechSynthesisUtterance(word);
+    u.voice=voice;u.rate=speed;u.pitch=1.0;u.lang=voice.lang;
+    let done=false;
+    const guard=setTimeout(()=>{if(!done){done=true;resolve();}},4000);
+    u.onend=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
+    u.onerror=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
+    window.speechSynthesis.speak(u);
+  });
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function shortName(v){return v.name.replace(/Microsoft |Google |Apple /,'').replace(/ \(.*?\)/,'').replace(/ Online.*$/,'');}
+function setStatus(html){document.getElementById('statusLine').innerHTML=html;}
+function openYG(acc){window.open('https://youglish.com/pronounce/'+encodeURIComponent(currentWord||'loyal')+'/english/'+acc,'_blank');}
+</script>
+</body>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+</script>
+</html>
