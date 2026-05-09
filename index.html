@@ -590,16 +590,32 @@ fetchPhonetic('loyal',false);
 // ── voices ──
 function loadVoices(){
   const v=window.speechSynthesis.getVoices();
-  if(!v.length)return;
+  if(!v.length)return false;
   allVoices=v;
   usVoices=v.filter(x=>x.lang==='en-US');
   ukVoices=v.filter(x=>x.lang==='en-GB');
   if(!usVoices.length)usVoices=v.filter(x=>x.lang.startsWith('en'));
   if(!ukVoices.length)ukVoices=v.filter(x=>x.lang.startsWith('en'));
   renderVoices();
+  return true;
 }
-window.speechSynthesis.onvoiceschanged=loadVoices;
-loadVoices();
+
+// 移动端 onvoiceschanged 有时不触发，加轮询兜底
+window.speechSynthesis.onvoiceschanged=()=>loadVoices();
+if(!loadVoices()){
+  let attempts=0;
+  const poll=setInterval(()=>{
+    attempts++;
+    if(loadVoices()||attempts>=40){
+      clearInterval(poll);
+      // 轮询结束仍无声音，说明设备不支持或需要用户交互
+      if(!allVoices.length){
+        document.getElementById('voicesGrid').innerHTML=
+          '<div class="no-voices">未检测到语音引擎<br>请尝试点击页面后刷新，或检查系统语音设置</div>';
+      }
+    }
+  },250); // 每250ms重试，最多等10秒
+}
 
 function getPool(){
   if(accent==='us')return usVoices;
