@@ -478,17 +478,17 @@ input[type=range]::-moz-range-thumb {
       <button class="accent-tab" onclick="setAccent('both',this)">🌐 混合</button>
     </div>
 
-    <!-- voices -->
-    <div class="section-label">声音来源</div>
-    <div class="voices-grid" id="voicesGrid">
-      <div class="no-voices">正在加载声音库…</div>
-    </div>
-
     <!-- youglish -->
     <div class="yg-row">
       <span class="yg-label">真人视频</span>
       <button class="yg-btn" onclick="openYG('american')">Youglish 美音 ↗</button>
       <button class="yg-btn" onclick="openYG('british')">Youglish 英音 ↗</button>
+    </div>
+
+    <!-- voices -->
+    <div class="section-label">声音来源</div>
+    <div class="voices-grid" id="voicesGrid">
+      <div class="no-voices">正在加载声音库…</div>
     </div>
 
     <div style="height:8px"></div>
@@ -580,8 +580,8 @@ async function fetchPhonetic(word,play){
 function renderPh(ph){
   const row=document.getElementById('phoneticRow');
   let html='';
-  if(ph.us)html+=`<div class="ph-item"><span class="ph-badge">US</span><span class="ph-text">${ph.us}</span></div>`;
-  if(ph.uk&&ph.uk!==ph.us)html+=`<div class="ph-item"><span class="ph-badge uk">UK</span><span class="ph-text">${ph.uk}</span></div>`;
+  if(ph.us)html+=`<div class="ph-item"><span class="ph-badge">US</span><span class="ph-text">${escHtml(ph.us)}</span></div>`;
+  if(ph.uk&&ph.uk!==ph.us)html+=`<div class="ph-item"><span class="ph-badge uk">UK</span><span class="ph-text">${escHtml(ph.uk)}</span></div>`;
   if(!html)html='<span style="font-size:13px;color:var(--text3)">音标未找到</span>';
   row.innerHTML=html;
 }
@@ -599,22 +599,26 @@ function loadVoices(){
   renderVoices();
   return true;
 }
-
-// 移动端 onvoiceschanged 有时不触发，加轮询兜底
+// 桌面：onvoiceschanged 可靠；Android Chrome：必须在用户手势后调用才能拿到数据
 window.speechSynthesis.onvoiceschanged=()=>loadVoices();
 if(!loadVoices()){
+  // 轮询兜底（部分桌面浏览器 onvoiceschanged 延迟触发）
   let attempts=0;
   const poll=setInterval(()=>{
     attempts++;
     if(loadVoices()||attempts>=40){
       clearInterval(poll);
-      // 轮询结束仍无声音，说明设备不支持或需要用户交互
       if(!allVoices.length){
         document.getElementById('voicesGrid').innerHTML=
-          '<div class="no-voices">未检测到语音引擎<br>请尝试点击页面后刷新，或检查系统语音设置</div>';
+          '<div class="no-voices">未检测到语音引擎，请点击页面任意处后刷新，或检查系统语音设置</div>';
       }
     }
-  },250); // 每250ms重试，最多等10秒
+  },250);
+  // Android Chrome 核心修复：首次用户手势后再次尝试
+  document.addEventListener('click',function onFirstGesture(){
+    document.removeEventListener('click',onFirstGesture);
+    if(!allVoices.length)loadVoices();
+  },{once:true});
 }
 
 function getPool(){
@@ -660,11 +664,6 @@ function renderVoices(){
   }).join('');
 }
 
-function toggleVc(i){
-  const idx=selected.indexOf(i);
-  if(idx===-1)selected.push(i);else selected.splice(idx,1);
-  refreshCards();
-}
 function refreshCards(activeIdx=-1){
   const pool=getPool();
   pool.forEach((_,i)=>{
@@ -691,8 +690,9 @@ async function speakOne(i){
   if(!v)return;
   busySingle=true;
   refreshCards(i);
-  setStatus('<em>'+shortName(v)+'</em> 试听中…');
-  await speak(v);
+  setStatus('<em>'+escHtml(shortName(v))+'</em> 试听中…');
+  const word=document.getElementById('wordInput').value.trim()||'loyal';
+  await speak(v,word);
   busySingle=false;
   refreshCards();
   setStatus('勾选声音，点击循环开始');
@@ -703,20 +703,14 @@ function toggleSelectAll(){
   const pool=getPool();
   if(!pool.length)return;
   const allSel=pool.every((_,i)=>selected.includes(i));
-  if(allSel){
-    selected=[];
-    document.getElementById('btnSelAll').textContent='全选';
-  }else{
-    selected=pool.map((_,i)=>i);
-    document.getElementById('btnSelAll').textContent='全取消';
-  }
+  selected=allSel?[]:pool.map((_,i)=>i);
   refreshCards();
-  updateSelAllBtn();
+  document.getElementById('btnSelAll').textContent=allSel?'全选':'全取消';
 }
 function updateSelAllBtn(){
   const pool=getPool();
   if(!pool.length)return;
-  const allSel=pool.length>0&&pool.every((_,i)=>selected.includes(i));
+  const allSel=pool.every((_,i)=>selected.includes(i));
   document.getElementById('btnSelAll').textContent=allSel?'全取消':'全选';
 }
 function toggleVc(i){
@@ -749,14 +743,15 @@ async function startLoop(){
       setStatus('没有勾选的声音，已自动停止');
       return;
     }
+    const word=document.getElementById('wordInput').value.trim()||'loyal';
     for(let qi=0;qi<queue.length;qi++){
       if(stopFlag)break;
       const vi=queue[qi];
       const v=pool[vi];
       if(!v)continue;
       refreshCards(vi);
-      setStatus('第'+(round+1)+'轮 · <em>'+shortName(v)+'</em>');
-      await speak(v);
+      setStatus('第'+(round+1)+'轮 · <em>'+escHtml(shortName(v))+'</em>');
+      await speak(v,word);
       if(stopFlag)break;
       await sleep(gap*1000);
     }
@@ -771,14 +766,15 @@ async function playOnce(){
   stopFlag=false;
   const pool=getPool();
   const queue=[...selected];
+  const word=document.getElementById('wordInput').value.trim()||'loyal';
   for(let qi=0;qi<queue.length;qi++){
     if(stopFlag)break;
     const vi=queue[qi];
     const v=pool[vi];
     if(!v)continue;
     refreshCards(vi);
-    setStatus('<em>'+shortName(v)+'</em> · 单次');
-    await speak(v);
+    setStatus('<em>'+escHtml(shortName(v))+'</em> · 单次');
+    await speak(v,word);
     if(stopFlag)break;
     await sleep(gap*1000);
   }
@@ -788,11 +784,10 @@ async function playOnce(){
 }
 
 // ── speak ──
-function speak(voice){
+function speak(voice,word){
   return new Promise(resolve=>{
     window.speechSynthesis.cancel();
-    const word=document.getElementById('wordInput').value.trim()||'loyal';
-    const u=new SpeechSynthesisUtterance(word);
+    const u=new SpeechSynthesisUtterance(word||'loyal');
     u.voice=voice;u.rate=speed;u.pitch=1.0;u.lang=voice.lang;
     let done=false;
     const guard=setTimeout(()=>{if(!done){done=true;resolve();}},4000);
@@ -803,10 +798,11 @@ function speak(voice){
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function shortName(v){return v.name.replace(/Microsoft |Google |Apple /,'').replace(/ \(.*?\)/,'').replace(/ Online.*$/,'');}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function setStatus(html){document.getElementById('statusLine').innerHTML=html;}
+function setStatusText(name){document.getElementById('statusLine').innerHTML='<em>'+escHtml(name)+'</em>';}
 function openYG(acc){window.open('https://youglish.com/pronounce/'+encodeURIComponent(currentWord||'loyal')+'/english/'+acc,'_blank');}
 </script>
-</body>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -816,4 +812,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+</body>
 </html>
