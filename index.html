@@ -176,6 +176,24 @@ body {
 }
 .ph-badge.uk { background: #fff3e0; color: #e67e00; }
 .ph-text { font-size: 14px; color: var(--text2); letter-spacing: 0.03em; }
+.duration-warn {
+  font-size: 12px;
+  color: #b85c00;
+  background: #fff8e0;
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+  line-height: 1.5;
+}
+.duration-warn.show {
+  max-height: 48px;
+  opacity: 1;
+  padding: 7px 10px;
+  margin-top: 8px;
+}
 .ph-skeleton {
   height: 14px; width: 90px; background: linear-gradient(90deg,#eee 25%,#f5f5f5 50%,#eee 75%);
   background-size: 200% 100%;
@@ -446,11 +464,11 @@ input[type=range]::-moz-range-thumb {
     <div class="modal">
       <div class="modal-handle"></div>
       <h2>🔊 欢迎使用回声</h2>
-      <p>回声帮你反复听同一个英语单词的多种发音，让你的耳朵快速建立正确的语音记忆。</p>
+      <p>回声帮你反复听同一段英语的多种发音，让你的耳朵快速建立正确的语音记忆。</p>
       <p><strong>怎么用：</strong></p>
-      <p>① 输入想练习的单词<br>② 选择美音 / 英音 / 混合<br>③ 勾选想听的声音，点击某个声音可单独试听<br>④ 按「循环」开始反复播放</p>
+      <p>① 输入想练习的单词或句子<br>② 选择美音 / 英音 / 混合<br>③ 勾选想听的声音，点击某个声音可单独试听<br>④ 按「循环」开始反复播放</p>
       <div class="modal-tip">
-        💡 音标会自动从网络加载。语速建议 0.8–0.9×，间隔 1s，听感最舒适。<br><br>
+        💡 输入单词时会自动加载音标；输入句子时音标自动隐藏。语速建议 0.8–0.9×，间隔 1s，听感最舒适。<br><br>
         点击「Youglish」可跳转到真人在 YouTube 视频中的发音片段，比 TTS 更自然。
       </div>
       <button class="modal-close" onclick="hideIntro()">明白了，开始练习 →</button>
@@ -464,11 +482,12 @@ input[type=range]::-moz-range-thumb {
     <div class="word-card">
       <input class="word-input" id="wordInput" type="text" value="loyal"
         placeholder="输入单词…" autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="onWordChange()" onkeydown="if(event.key==='Enter'){this.blur();fetchPhonetic(currentWord,true);}">
+        oninput="onWordChange()" onkeydown="if(event.key==='Enter'){this.blur();if(!isSentence(currentWord))fetchPhonetic(currentWord,true);else playOnce();}">
       <div class="divider" id="divider"></div>
       <div class="phonetic-row" id="phoneticRow">
         <div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>
       </div>
+      <div class="duration-warn" id="durationWarn"></div>
     </div>
 
     <!-- accent tabs -->
@@ -500,7 +519,7 @@ input[type=range]::-moz-range-thumb {
       <div class="slider-block">
         <div class="slider-label"><span>语速</span><span id="sv">0.85×</span></div>
         <input type="range" min="0.5" max="1.2" step="0.05" value="0.85"
-          oninput="speed=+this.value;document.getElementById('sv').textContent=speed.toFixed(2)+'×'">
+          oninput="speed=+this.value;document.getElementById('sv').textContent=speed.toFixed(2)+'×';checkDuration()">
       </div>
       <div class="slider-block">
         <div class="slider-label"><span>间隔</span><span id="gv">1.0s</span></div>
@@ -544,10 +563,33 @@ if(!localStorage.getItem('echo_seen')){setTimeout(showIntro,400);localStorage.se
 // ── phonetic ──
 const phCache={};
 let phTimer=null;
+function isSentence(text){return text.includes(' ');}
 function onWordChange(){
   currentWord=document.getElementById('wordInput').value.trim()||'loyal';
+  const phRow=document.getElementById('phoneticRow');
   clearTimeout(phTimer);
-  phTimer=setTimeout(()=>fetchPhonetic(currentWord,false),600);
+  if(isSentence(currentWord)){
+    phRow.style.display='none';
+  }else{
+    phRow.style.display='';
+    phTimer=setTimeout(()=>fetchPhonetic(currentWord,false),600);
+  }
+  checkDuration();
+}
+
+// ── duration warning ──
+function checkDuration(){
+  const text=document.getElementById('wordInput').value.trim();
+  const warn=document.getElementById('durationWarn');
+  // 英文粗估：平均每词5字符，正常语速150词/分钟
+  const words=text.split(/\s+/).filter(Boolean).length||1;
+  const estSec=Math.round((words/150)*60*(1/speed));
+  if(text.length>0&&estSec>12){
+    warn.textContent='⚠️ 预计朗读约'+estSec+'秒，可能被浏览器中断（约15秒截止）';
+    warn.classList.add('show');
+  }else{
+    warn.classList.remove('show');
+  }
 }
 async function fetchPhonetic(word,play){
   if(!word)return;
@@ -790,7 +832,7 @@ function speak(voice,word){
     const u=new SpeechSynthesisUtterance(word||'loyal');
     u.voice=voice;u.rate=speed;u.pitch=1.0;u.lang=voice.lang;
     let done=false;
-    const guard=setTimeout(()=>{if(!done){done=true;resolve();}},4000);
+    const guard=setTimeout(()=>{if(!done){done=true;resolve();}},20000);
     u.onend=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
     u.onerror=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
     window.speechSynthesis.speak(u);
