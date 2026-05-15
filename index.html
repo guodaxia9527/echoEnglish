@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="回声">
+<meta name="apple-mobile-web-app-title" content="EchoLoop">
 <meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>回声 · 发音练习</title>
+<title>EchoLoop · 回声 · 发音练习</title>
 <style>
 :root {
   --green: #58CC02;
@@ -67,11 +67,11 @@ body {
 .logo-wrap { display: flex; align-items: center; gap: 10px; }
 .logo-icon {
   width: 36px; height: 36px;
-  background: var(--green);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
   box-shadow: 0 2px 6px rgba(88,204,2,0.35);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 .logo-text { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
 .logo-sub { font-size: 11px; color: var(--text3); font-weight: 400; letter-spacing: 0.3px; }
@@ -163,6 +163,14 @@ body {
   background: transparent;
   letter-spacing: -0.5px;
   caret-color: var(--green);
+  resize: none;
+  overflow: hidden;
+  line-height: 1.3;
+  min-height: 42px;
+  display: block;
+  font-family: inherit;
+  padding: 0;
+  box-sizing: border-box;
 }
 .word-input::placeholder { color: var(--text3); font-weight: 400; }
 .divider { height: 2px; background: var(--border); border-radius: 1px; margin: 10px 0; transition: background 0.15s; }
@@ -450,9 +458,17 @@ input[type=range]::-moz-range-thumb {
   <!-- header -->
   <div class="header">
     <div class="logo-wrap">
-      <div class="logo-icon">🔊</div>
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="36" height="36">
+          <rect width="100" height="100" rx="22" fill="#44cc00"/>
+          <path d="M50 18 A32 32 0 1 0 50 82 L50 50 Z" fill="white"/>
+          <circle cx="44" cy="36" r="5" fill="#44cc00"/>
+          <rect x="72" y="32" width="18" height="8" rx="4" fill="white" transform="rotate(-20 81 36)"/>
+          <rect x="72" y="58" width="18" height="8" rx="4" fill="white" transform="rotate(20 81 62)"/>
+        </svg>
+      </div>
       <div>
-        <div class="logo-text">回声</div>
+        <div class="logo-text">EchoLoop<span style="font-weight:400;color:var(--text3);font-size:14px;margin-left:4px">· 回声</span></div>
         <div class="logo-sub">发音循环练习</div>
       </div>
     </div>
@@ -463,7 +479,7 @@ input[type=range]::-moz-range-thumb {
   <div class="modal-bg" id="modalBg" onclick="if(event.target===this)hideIntro()">
     <div class="modal">
       <div class="modal-handle"></div>
-      <h2>🔊 欢迎使用回声</h2>
+      <h2>🔊 欢迎使用 EchoLoop · 回声</h2>
       <p>回声帮你反复听同一段英语的多种发音，让你的耳朵快速建立正确的语音记忆。</p>
       <p><strong>怎么用：</strong></p>
       <p>① 输入想练习的单词或句子<br>② 选择美音 / 英音 / 混合<br>③ 勾选想听的声音，点击某个声音可单独试听<br>④ 按「循环」开始反复播放</p>
@@ -480,9 +496,10 @@ input[type=range]::-moz-range-thumb {
 
     <!-- word card -->
     <div class="word-card">
-      <input class="word-input" id="wordInput" type="text" value="loyal"
-        placeholder="输入单词…" autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="onWordChange()" onkeydown="if(event.key==='Enter'){this.blur();if(!isSentence(currentWord))fetchPhonetic(currentWord,true);else playOnce();}">
+      <textarea class="word-input" id="wordInput" rows="1"
+        placeholder="输入单词或句子…" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onWordChange();autoResize(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();if(!isSentence(currentWord))fetchPhonetic(currentWord,true);else playOnce();}">loyal</textarea>
       <div class="divider" id="divider"></div>
       <div class="phonetic-row" id="phoneticRow">
         <div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>
@@ -627,6 +644,12 @@ function renderPh(ph){
   if(!html)html='<span style="font-size:13px;color:var(--text3)">音标未找到</span>';
   row.innerHTML=html;
 }
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+// 初始化textarea高度
+autoResize(document.getElementById('wordInput'));
 fetchPhonetic('loyal',false);
 
 // ── voices ──
