@@ -2,13 +2,17 @@
 
 一款帮助你反复听同一个英语单词多种发音的 Web 应用，让你的耳朵快速建立正确的语音记忆。
 
+<p align="center">
+  <img src="icons/app-screenshot.png" alt="回声 App 截图" width="320">
+</p>
+
 ## 功能特点
 
 - **多发音源**：自动加载系统中的美音/英音语音，支持选择不同发音人
 - **循环播放**：自由控制播放间隔和语速，循环练习
 - **音标显示**：自动从 Dictionary API 获取英美音标
 - **真人发音**：集成 Youglish，跳转到 YouTube 视频中的真实发音片段
-- **PWA 支持**：可安装到桌面/手机，支持离线使用
+- **PWA 支持**：可安装到桌面/手机主屏幕，像原生 App 一样使用
 
 ## 使用方法
 
@@ -31,9 +35,15 @@
 
 ## 浏览器兼容性
 
-- Chrome / Edge (推荐)
-- Safari (iOS/macOS)
-- Firefox
+| 浏览器 | 体验 | 说明 |
+|--------|------|------|
+| Edge (Windows) | ⭐⭐⭐⭐⭐ 最佳 | 可调用 Microsoft Neural 高质量神经网络语音（Aria、Guy、Jenny 等） |
+| Chrome (Windows) | ⭐⭐⭐⭐ 推荐 | 可调用 Google 在线语音，效果接近 Edge |
+| Safari (macOS/iOS) | ⭐⭐⭐ 可用 | 使用 Apple Siri 系统语音，声音种类较少 |
+| Chrome (Android) | ⭐⭐⭐ 可用 | 效果取决于设备安装的语音包，Pixel 系列较好 |
+| Firefox | ⚠️ 不推荐 | 仅支持本地离线语音，质量较差 |
+
+> **核心功能强依赖联网 TTS**：应用通过浏览器的 Web Speech API 调用系统/云端语音引擎，高质量声音（Microsoft Neural、Google 在线语音）均需要网络连接。建议在 **Windows + Edge 或 Chrome** 下使用以获得最佳效果。
 
 ## 开发
 
