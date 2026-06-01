@@ -695,6 +695,7 @@ function getPool(){
 function setAccent(a,el){
   if(playing)stopLoop();
   accent=a;
+  selected=[]; // 切换口音时清空勾选，让 renderVoices 重新初始化默认值
   document.querySelectorAll('.accent-tab').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
   renderVoices();
@@ -704,7 +705,8 @@ function renderVoices(){
   const pool=getPool();
   const grid=document.getElementById('voicesGrid');
   if(!pool.length){grid.innerHTML='<div class="no-voices">未找到对应声音<br>请在系统设置中安装英语语音包</div>';return;}
-  selected=pool.slice(0,Math.min(6,pool.length)).map((_,i)=>i);
+  // 只在 selected 为空时才设默认值，避免语音库异步加载完成时覆盖用户的勾选
+  if(!selected.length)selected=pool.slice(0,Math.min(6,pool.length)).map((_,i)=>i);
   grid.innerHTML=pool.map((v,i)=>{
     const raw=v.name.replace(/Microsoft |Google |Apple /,'').replace(/ \(.*?\)/,'').replace(/ Online.*$/,'');
     const ini=initials(raw)||raw.slice(0,2).toUpperCase();
@@ -770,7 +772,7 @@ function toggleSelectAll(){
   const allSel=pool.every((_,i)=>selected.includes(i));
   selected=allSel?[]:pool.map((_,i)=>i);
   refreshCards();
-  document.getElementById('btnSelAll').textContent=allSel?'全选':'全取消';
+  document.getElementById('btnSelAll').textContent=allSel?'全取消':'全选';
 }
 function updateSelAllBtn(){
   const pool=getPool();
@@ -828,19 +830,20 @@ async function playOnce(){
   if(!selected.length){setStatus('请先勾选至少一个声音');return;}
   busySingle=true;
   window.speechSynthesis.cancel();
-  stopFlag=false;
+  // 不重置 stopFlag，避免干扰 loop 的停止状态
+  const localStop={flag:false};
   const pool=getPool();
   const queue=[...selected];
   const word=document.getElementById('wordInput').value.trim()||'loyal';
   for(let qi=0;qi<queue.length;qi++){
-    if(stopFlag)break;
+    if(localStop.flag)break;
     const vi=queue[qi];
     const v=pool[vi];
     if(!v)continue;
     refreshCards(vi);
     setStatus('<em>'+escHtml(shortName(v))+'</em> · 单次');
     await speak(v,word);
-    if(stopFlag)break;
+    if(localStop.flag)break;
     await sleep(gap*1000);
   }
   busySingle=false;
