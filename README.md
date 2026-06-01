@@ -3,7 +3,7 @@
 一款帮助你反复听同一个英语单词多种发音的 Web 应用，让你的耳朵快速建立正确的语音记忆。
 
 <p align="center">
-  <img src="icons/app-screenshot.png" alt="回声 App 截图" width="320">
+  <img src="icons/app-screenshot.png" alt="回声 App 截图" width="380">
 </p>
 
 ## 功能特点
