@@ -12,7 +12,7 @@
 - **循环播放**：自由控制播放间隔和语速，循环练习
 - **音标显示**：自动从 Dictionary API 获取英美音标
 - **真人发音**：集成 Youglish，跳转到 YouTube 视频中的真实发音片段
-- **PWA 支持**：可安装到桌面/手机主屏幕，像原生 App 一样使用
+- **PWA 支持**：可安装到桌面主屏幕，像原生 App 一样使用
 
 ## 使用方法
 
@@ -35,15 +35,16 @@
 
 ## 浏览器兼容性
 
-| 浏览器 | 体验 | 说明 |
-|--------|------|------|
-| Edge (Windows) | ⭐⭐⭐⭐⭐ 最佳 | 可调用 Microsoft Neural 高质量神经网络语音（Aria、Guy、Jenny 等） |
-| Chrome (Windows) | ⭐⭐⭐⭐ 推荐 | 可调用 Google 在线语音，效果接近 Edge |
-| Safari (macOS/iOS) | ⭐⭐⭐ 可用 | 使用 Apple Siri 系统语音，声音种类较少 |
-| Chrome (Android) | ⭐⭐⭐ 可用 | 效果取决于设备安装的语音包，Pixel 系列较好 |
-| Firefox | ⚠️ 不推荐 | 仅支持本地离线语音，质量较差 |
+> **核心功能强依赖联网 TTS**：应用通过浏览器的 Web Speech API 调用系统/云端语音引擎，高质量声音均需要网络连接。**仅推荐在 Windows 桌面端使用。**
 
-> **核心功能强依赖联网 TTS**：应用通过浏览器的 Web Speech API 调用系统/云端语音引擎，高质量声音（Microsoft Neural、Google 在线语音）均需要网络连接。建议在 **Windows + Edge 或 Chrome** 下使用以获得最佳效果。
+| 环境 | 体验 | 说明 |
+|------|------|------|
+| Windows · Edge（桌面） | ⭐⭐⭐⭐⭐ 最佳 | 250+ Microsoft Neural 高质量神经网络声音 |
+| Windows · Chrome（桌面） | ⭐⭐⭐ 可用 | Google 离线语音，质量较差 |
+| macOS · Safari / Chrome | ⭐⭐⭐ 可用 | Apple Siri 系统语音，种类较少 |
+| Android · 任意浏览器 | ❌ 不可用 | `getVoices()` 返回空列表，已知平台 bug |
+| iOS · 任意浏览器 | ⚠️ 有限 | 仅少量系统语音，无法获取高质量声音 |
+| 任意平台 · Firefox | ⚠️ 不推荐 | 仅本地离线语音，质量较差 |
 
 ## 开发
 
