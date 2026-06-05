@@ -38,17 +38,19 @@ body {
   font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
 }
 .app {
   width: 100%;
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -139,12 +141,48 @@ body {
 /* ── scroll content ── */
 .scroll {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 顶部固定区（单词卡 + 口音 tab + Youglish）*/
+.scroll-fixed {
+  padding: 20px 16px 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex-shrink: 0;
 }
+/* 声音来源标题行（含计数）*/
+.voices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 6px;
+  flex-shrink: 0;
+}
+.voices-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green-dark);
+  letter-spacing: 0.05em;
+}
+/* 声音列表滚动区 */
+.voices-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overscroll-behavior: contain;
+  /* 让列表滚动条在 WebKit 上窄一点 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.voices-scroll::-webkit-scrollbar { width: 4px; }
+.voices-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 /* ── word card ── */
 .word-card {
@@ -245,7 +283,7 @@ body {
 .voices-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 .vc {
   background: var(--card);
@@ -315,7 +353,9 @@ body {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   transition: background 0.12s, transform 0.1s;
+  cursor: pointer;
 }
+.vc-play-icon:hover { background: var(--green-mid); transform: scale(1.12); }
 .vc-body:active .vc-play-icon { background: var(--green-mid); transform: scale(0.92); }
 .vc.now .vc-play-icon { background: var(--green); }
 .vc.now .vc-play-icon svg { fill: white; }
@@ -461,10 +501,13 @@ input[type=range]::-moz-range-thumb {
       <div class="logo-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="36" height="36">
           <rect width="100" height="100" rx="22" fill="#44cc00"/>
-          <path d="M50 18 A32 32 0 1 0 50 82 L50 50 Z" fill="white"/>
-          <circle cx="44" cy="36" r="5" fill="#44cc00"/>
-          <rect x="72" y="32" width="18" height="8" rx="4" fill="white" transform="rotate(-20 81 36)"/>
-          <rect x="72" y="58" width="18" height="8" rx="4" fill="white" transform="rotate(20 81 62)"/>
+          <!-- 吃豆人：圆心(42,52) 半径30，张嘴朝右，上唇指向右上约30°，下唇指向右下约30° -->
+          <path d="M42,52 L68,37 A30,30 0 1,0 68,67 Z" fill="white"/>
+          <!-- 眼睛：在头部偏左上 -->
+          <circle cx="36" cy="42" r="4.5" fill="#44cc00"/>
+          <!-- 声波线：间距缩小一半，靠近嘴部中线 -->
+          <line x1="72" y1="43" x2="84" y2="37" stroke="white" stroke-width="6.5" stroke-linecap="round"/>
+          <line x1="72" y1="61" x2="84" y2="67" stroke="white" stroke-width="6.5" stroke-linecap="round"/>
         </svg>
       </div>
       <div>
@@ -494,40 +537,51 @@ input[type=range]::-moz-range-thumb {
   <!-- scroll -->
   <div class="scroll">
 
-    <!-- word card -->
-    <div class="word-card">
-      <textarea class="word-input" id="wordInput" rows="1"
-        placeholder="输入单词或句子…" autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="onWordChange();autoResize(this)"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();if(!isSentence(currentWord))fetchPhonetic(currentWord,true);else playOnce();}">loyal</textarea>
-      <div class="divider" id="divider"></div>
-      <div class="phonetic-row" id="phoneticRow">
-        <div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>
+    <!-- 固定区：单词卡 + 口音 + Youglish -->
+    <div class="scroll-fixed">
+
+      <!-- word card -->
+      <div class="word-card">
+        <textarea class="word-input" id="wordInput" rows="1"
+          placeholder="输入单词或句子…" autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="onWordChange();autoResize(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();if(!isSentence(currentWord))fetchPhonetic(currentWord,true);else playOnce();}">loyal</textarea>
+        <div class="divider" id="divider"></div>
+        <div class="phonetic-row" id="phoneticRow">
+          <div class="ph-skeleton"></div><div class="ph-skeleton" style="width:75px"></div>
+        </div>
+        <div class="duration-warn" id="durationWarn"></div>
       </div>
-      <div class="duration-warn" id="durationWarn"></div>
+
+      <!-- accent tabs -->
+      <div class="accent-tabs">
+        <button class="accent-tab on" onclick="setAccent('us',this)">🇺🇸 美音 US</button>
+        <button class="accent-tab" onclick="setAccent('uk',this)">🇬🇧 英音 UK</button>
+        <button class="accent-tab" onclick="setAccent('both',this)">🌐 混合</button>
+      </div>
+
+      <!-- youglish -->
+      <div class="yg-row">
+        <span class="yg-label">真人视频</span>
+        <button class="yg-btn" onclick="openYG('american')">Youglish 美音 ↗</button>
+        <button class="yg-btn" onclick="openYG('british')">Youglish 英音 ↗</button>
+      </div>
+
+    </div><!-- /scroll-fixed -->
+
+    <!-- 声音来源标题 -->
+    <div class="voices-header">
+      <span class="section-label">声音来源</span>
+      <span class="voices-count" id="voicesCount"></span>
     </div>
 
-    <!-- accent tabs -->
-    <div class="accent-tabs">
-      <button class="accent-tab on" onclick="setAccent('us',this)">🇺🇸 美音 US</button>
-      <button class="accent-tab" onclick="setAccent('uk',this)">🇬🇧 英音 UK</button>
-      <button class="accent-tab" onclick="setAccent('both',this)">🌐 混合</button>
+    <!-- 声音列表独立滚动区 -->
+    <div class="voices-scroll" id="voicesScroll">
+      <div class="voices-grid" id="voicesGrid">
+        <div class="no-voices">正在加载声音库…</div>
+      </div>
     </div>
 
-    <!-- youglish -->
-    <div class="yg-row">
-      <span class="yg-label">真人视频</span>
-      <button class="yg-btn" onclick="openYG('american')">Youglish 美音 ↗</button>
-      <button class="yg-btn" onclick="openYG('british')">Youglish 英音 ↗</button>
-    </div>
-
-    <!-- voices -->
-    <div class="section-label">声音来源</div>
-    <div class="voices-grid" id="voicesGrid">
-      <div class="no-voices">正在加载声音库…</div>
-    </div>
-
-    <div style="height:8px"></div>
   </div>
 
   <!-- bottom bar -->
@@ -562,6 +616,7 @@ let playing=false, busySingle=false, stopFlag=false;
 let speed=0.85, gap=1.0;
 let currentWord='loyal';
 let round=0;
+let lastClickedIdx=-1; // 用于 Shift 区间选
 
 // avatar colors
 const COLORS=[
@@ -654,35 +709,52 @@ fetchPhonetic('loyal',false);
 
 // ── voices ──
 function loadVoices(){
-  const v=window.speechSynthesis.getVoices();
-  if(!v.length)return false;
-  allVoices=v;
-  usVoices=v.filter(x=>x.lang==='en-US');
-  ukVoices=v.filter(x=>x.lang==='en-GB');
-  if(!usVoices.length)usVoices=v.filter(x=>x.lang.startsWith('en'));
-  if(!ukVoices.length)ukVoices=v.filter(x=>x.lang.startsWith('en'));
-  renderVoices();
-  return true;
+  try{
+    const v=window.speechSynthesis.getVoices();
+    if(!v||!v.length)return false;
+    allVoices=v;
+    usVoices=v.filter(x=>x.lang==='en-US');
+    ukVoices=v.filter(x=>x.lang==='en-GB');
+    if(!usVoices.length)usVoices=v.filter(x=>x.lang.startsWith('en'));
+    if(!ukVoices.length)ukVoices=v.filter(x=>x.lang.startsWith('en'));
+    renderVoices();
+    return true;
+  }catch(e){
+    console.error('loadVoices error:',e);
+    return false;
+  }
 }
-// 桌面：onvoiceschanged 可靠；Android Chrome：必须在用户手势后调用才能拿到数据
-window.speechSynthesis.onvoiceschanged=()=>loadVoices();
-if(!loadVoices()){
-  // 轮询兜底（部分桌面浏览器 onvoiceschanged 延迟触发）
+
+function startVoicePoll(){
   let attempts=0;
   const poll=setInterval(()=>{
     attempts++;
-    if(loadVoices()||attempts>=40){
+    if(loadVoices()||attempts>=60){
       clearInterval(poll);
       if(!allVoices.length){
         document.getElementById('voicesGrid').innerHTML=
-          '<div class="no-voices">未检测到语音引擎，请点击页面任意处后刷新，或检查系统语音设置</div>';
+          '<div class="no-voices">未检测到语音引擎<br>请点击页面任意处重试，或检查系统语音设置</div>';
+        document.addEventListener('click',function onRetry(){
+          document.removeEventListener('click',onRetry);
+          if(!allVoices.length){
+            document.getElementById('voicesGrid').innerHTML=
+              '<div class="no-voices">正在重新加载…</div>';
+            startVoicePoll();
+          }
+        },{once:true});
       }
     }
   },250);
-  // Android Chrome 核心修复：首次用户手势后再次尝试
+}
+
+// 桌面：onvoiceschanged 可靠；Android Chrome：必须在用户手势后调用才能拿到数据
+window.speechSynthesis.onvoiceschanged = loadVoices;
+if(!loadVoices()){
+  startVoicePoll();
+  // Android Chrome 核心修复：首次用户手势后立即再尝试
   document.addEventListener('click',function onFirstGesture(){
     document.removeEventListener('click',onFirstGesture);
-    if(!allVoices.length)loadVoices();
+    if(!allVoices.length) loadVoices();
   },{once:true});
 }
 
@@ -696,23 +768,25 @@ function setAccent(a,el){
   if(playing)stopLoop();
   accent=a;
   selected=[]; // 切换口音时清空勾选，让 renderVoices 重新初始化默认值
+  lastClickedIdx=-1;
   document.querySelectorAll('.accent-tab').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
   renderVoices();
 }
 
 function renderVoices(){
+  try{
   const pool=getPool();
   const grid=document.getElementById('voicesGrid');
-  if(!pool.length){grid.innerHTML='<div class="no-voices">未找到对应声音<br>请在系统设置中安装英语语音包</div>';return;}
+  if(!pool.length){grid.innerHTML='<div class="no-voices">未找到对应声音<br>请在系统设置中安装英语语音包</div>';updateVoicesCount(0,0);return;}
   // 只在 selected 为空时才设默认值，避免语音库异步加载完成时覆盖用户的勾选
   if(!selected.length)selected=pool.slice(0,Math.min(6,pool.length)).map((_,i)=>i);
   grid.innerHTML=pool.map((v,i)=>{
     const raw=v.name.replace(/Microsoft |Google |Apple /,'').replace(/ \(.*?\)/,'').replace(/ Online.*$/,'');
     const ini=initials(raw)||raw.slice(0,2).toUpperCase();
     const isSel=selected.includes(i);
-    return`<div class="vc${isSel?' sel':''}" id="vc${i}">
-      <div class="vc-check" onclick="toggleVc(${i})" title="勾选加入循环">
+    return`<div class="vc${isSel?' sel':''}" id="vc${i}" style="margin-bottom:6px">
+      <div class="vc-check" onclick="event.preventDefault();toggleVc(${i},event)" title="点击勾选；Ctrl+点击区间选">
         <div class="checkmark">
           <svg width="12" height="10" viewBox="0 0 12 10" fill="white"><path d="M1 5l3.5 3.5L11 1"/></svg>
         </div>
@@ -723,12 +797,22 @@ function renderVoices(){
           <div class="vc-name">${raw}</div>
           <div class="vc-lang">${v.lang}</div>
         </div>
-        <div class="vc-play-icon" id="pi${i}">
+        <div class="vc-play-icon" id="pi${i}"
+          onmouseenter="hoverPlay(${i})"
+          onmouseleave="hoverCancel(${i})"
+          title="悬停试听">
           <svg width="12" height="14" viewBox="0 0 12 14"><path d="M1 1l10 6-10 6z"/></svg>
         </div>
       </div>
     </div>`;
   }).join('');
+  updateVoicesCount(selected.length, pool.length);
+  updateSelAllBtn();
+  }catch(e){
+    console.error('renderVoices error:',e);
+    const grid=document.getElementById('voicesGrid');
+    if(grid) grid.innerHTML='<div class="no-voices">渲染出错: '+e.message+'</div>';
+  }
 }
 
 function refreshCards(activeIdx=-1){
@@ -747,6 +831,15 @@ function refreshCards(activeIdx=-1){
       pi.innerHTML=`<svg width="12" height="14" viewBox="0 0 12 14"><path d="M1 1l10 6-10 6z" fill="${isSel?'var(--green)':'var(--text3)'}"/></svg>`;
     }
   });
+  if(activeIdx>=0) scrollToVoice(activeIdx);
+}
+
+function scrollToVoice(i){
+  const el=document.getElementById('vc'+i);
+  const container=document.getElementById('voicesScroll');
+  if(!el||!container)return;
+  // scrollIntoView block:nearest 只在元素不完全可见时才滚动
+  el.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
 // ── speak single ──
@@ -765,33 +858,73 @@ async function speakOne(i){
   setStatus('勾选声音，点击循环开始');
 }
 
+// ── hover play（悬停播放按钮触发，200ms 防抖）──
+const hoverTimers={};
+function hoverPlay(i){
+  if(playing||busySingle)return;
+  hoverTimers[i]=setTimeout(()=>speakOne(i), 200);
+}
+function hoverCancel(i){
+  clearTimeout(hoverTimers[i]);
+}
+
 // ── select all / deselect all ──
 function toggleSelectAll(){
   const pool=getPool();
   if(!pool.length)return;
-  const allSel=pool.every((_,i)=>selected.includes(i));
+  const allSel=pool.length>0&&pool.every((_,i)=>selected.includes(i));
+  // 已全选 → 全取消；否则（部分选或全未选）→ 全选
   selected=allSel?[]:pool.map((_,i)=>i);
+  lastClickedIdx=-1;
   refreshCards();
-  document.getElementById('btnSelAll').textContent=allSel?'全取消':'全选';
+  updateSelAllBtn();
+  updateVoicesCount(selected.length, pool.length);
 }
 function updateSelAllBtn(){
   const pool=getPool();
   if(!pool.length)return;
   const allSel=pool.every((_,i)=>selected.includes(i));
+  // 按钮显示"即将执行的动作"：已全选则下一步是取消，否则是全选
   document.getElementById('btnSelAll').textContent=allSel?'全取消':'全选';
 }
-function toggleVc(i){
+function updateVoicesCount(sel, total){
+  const el=document.getElementById('voicesCount');
+  if(!el)return;
+  el.textContent=total?`已选 ${sel} / ${total}`:'';
+}
+function toggleVc(i, e){
   if(playing||busySingle)return;
-  const idx=selected.indexOf(i);
-  if(idx===-1)selected.push(i);else selected.splice(idx,1);
+  const pool=getPool();
+
+  if(e && (e.ctrlKey||e.metaKey) && lastClickedIdx !== -1 && lastClickedIdx !== i){
+    // Ctrl/Cmd+点击：区间选/取消选
+    // 区间内的状态对齐到"当前点击目标的新状态"（如果目标之前是选中则取消选中该区间，反之亦然）
+    const from=Math.min(lastClickedIdx, i);
+    const to=Math.max(lastClickedIdx, i);
+    const targetSel=!selected.includes(i); // 本次点击的目标状态
+    for(let j=from; j<=to; j++){
+      const idx=selected.indexOf(j);
+      if(targetSel && idx===-1) selected.push(j);
+      else if(!targetSel && idx!==-1) selected.splice(idx,1);
+    }
+  } else {
+    // 普通点击 或 Ctrl+点击（效果相同：跳选）
+    const idx=selected.indexOf(i);
+    if(idx===-1) selected.push(i);
+    else selected.splice(idx,1);
+  }
+
+  lastClickedIdx=i;
   refreshCards();
   updateSelAllBtn();
+  updateVoicesCount(selected.length, pool.length);
 }
 // ── loop ──
 function toggleLoop(){if(playing)stopLoop();else startLoop();}
 function stopLoop(){
   stopFlag=true;playing=false;
   window.speechSynthesis.cancel();
+  stopKeepAlive();
   const btn=document.getElementById('btnLoop');
   btn.className='btn-loop';btn.innerHTML='▶ 开始循环';
   setStatus('已停止');refreshCards();
@@ -800,6 +933,7 @@ async function startLoop(){
   if(playing||busySingle)return;
   if(!selected.length){setStatus('请先勾选至少一个声音');return;}
   playing=true;stopFlag=false;round=0;
+  startKeepAlive();
   const btn=document.getElementById('btnLoop');
   btn.className='btn-loop stop';btn.innerHTML='■ 停止循环';
   const pool=getPool();
@@ -852,16 +986,51 @@ async function playOnce(){
 }
 
 // ── speak ──
+// Chrome 有个 bug：页面空闲超 ~15s 后 speechSynthesis 会被"冻结"，
+// speak() 调用后静默失败。标准修复：每 12s pause/resume 一次保持活跃。
+let _keepAliveTimer=null;
+function startKeepAlive(){
+  stopKeepAlive();
+  _keepAliveTimer=setInterval(()=>{
+    if(window.speechSynthesis.speaking||window.speechSynthesis.pending){
+      window.speechSynthesis.pause();
+      window.speechSynthesis.resume();
+    }
+  },12000);
+}
+function stopKeepAlive(){
+  if(_keepAliveTimer){clearInterval(_keepAliveTimer);_keepAliveTimer=null;}
+}
+
 function speak(voice,word){
   return new Promise(resolve=>{
     window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(word||'loyal');
-    u.voice=voice;u.rate=speed;u.pitch=1.0;u.lang=voice.lang;
-    let done=false;
-    const guard=setTimeout(()=>{if(!done){done=true;resolve();}},20000);
-    u.onend=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
-    u.onerror=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
-    window.speechSynthesis.speak(u);
+    // cancel() 是异步生效的，给浏览器 60ms 清空队列再 speak，避免竞态
+    setTimeout(()=>{
+      const u=new SpeechSynthesisUtterance(word||'loyal');
+      u.voice=voice;u.rate=speed;u.pitch=1.0;u.lang=voice.lang;
+      let done=false;
+      // 超时兜底：Online 语音网络超时约 5~8s；本地语音正常 <3s
+      const guard=setTimeout(()=>{
+        if(!done){
+          done=true;
+          setStatus('⚠️ <em>'+escHtml(shortName(voice))+'</em> 无响应，已跳过');
+          resolve();
+        }
+      },12000);
+      u.onend=()=>{if(!done){done=true;clearTimeout(guard);resolve();}};
+      u.onerror=(ev)=>{
+        if(!done){
+          done=true;clearTimeout(guard);
+          // 'interrupted' 是 cancel() 正常打断，不算错误
+          if(ev.error!=='interrupted'){
+            setStatus('⚠️ <em>'+escHtml(shortName(voice))+'</em> 出错('+ev.error+')，已跳过');
+          }
+          resolve();
+        }
+      };
+      window.speechSynthesis.speak(u);
+    },60);
   });
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
